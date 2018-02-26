@@ -10,6 +10,7 @@ setup(
     version='1.1',
     author='Ryan Petrello',
     author_email='ryan@ryanpetrello.com',
+    url='https://github.com/ryanpetrello/sdb',
     description='A socket-based remote debugger for Python',
     long_description=DESCRIPTION,
     classifiers=[
