@@ -191,18 +191,6 @@ class Sdb(Pdb):
         with style(self):
             return Pdb.print_stack_entry(self, *args, **kwargs)
 
-    def set_next(self, curframe):
-        os.system('clear')
-        Pdb.set_next(self, curframe)
-
-    def set_return(self, arg):
-        os.system('clear')
-        Pdb.set_return(self, arg)
-
-    def set_step(self):
-        os.system('clear')
-        Pdb.set_step(self)
-
     def default(self, line):
         with style(self):
             return Pdb.default(self, line)
@@ -350,18 +338,22 @@ def telnet(port):
 
     while True:
         socket_list = [sys.stdin, s]
-        r, w, e = select.select(socket_list, [], [])
-        for sock in r:
-            if sock == s:
-                data = sock.recv(4096)
-                if not data:
-                    print('connection closed')
-                    return
+        try:
+            r, w, e = select.select(socket_list, [], [])
+            for sock in r:
+                if sock == s:
+                    data = sock.recv(4096)
+                    if not data:
+                        print('connection closed')
+                        return
+                    else:
+                        sys.stdout.write(data)
                 else:
-                    sys.stdout.write(data)
-            else:
-                msg = sys.stdin.readline()
-                s.send(msg)
+                    msg = sys.stdin.readline()
+                    s.send(msg)
+        except select.error as e:
+            if e[0] != errno.EINTR:
+                raise
 
 
 if __name__ == '__main__':
