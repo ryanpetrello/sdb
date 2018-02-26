@@ -3,15 +3,15 @@
 from distutils.core import setup
 
 setup(
-    name='rdb',
+    name='sdb',
     version='1.0',
     author='Ryan Petrello',
     author_email='ryan@ryanpetrello.com',
     install_requires='pygments',
-    py_modules=['rdb'],
+    py_modules=['sdb'],
     entry_points={
         'console_scripts': [
-            'rdb-listen = rdb:listen'
+            'sdb-listen = sdb:listen'
         ]
     }
  )

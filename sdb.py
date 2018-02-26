@@ -33,16 +33,16 @@ from pygments.formatters import Terminal256Formatter
 
 
 __all__ = (
-    'RDB_HOST', 'RDB_PORT', 'RDB_NOTIFY_HOST',
-    'DEFAULT_PORT', 'Rdb', 'debugger', 'set_trace',
+    'SDB_HOST', 'SDB_PORT', 'SDB_NOTIFY_HOST',
+    'DEFAULT_PORT', 'Sdb', 'debugger', 'set_trace',
 )
 
 DEFAULT_PORT = 6899
 
-RDB_HOST = os.environ.get('RDB_HOST') or '127.0.0.1'
-RDB_PORT = int(os.environ.get('RDB_PORT') or DEFAULT_PORT)
-RDB_NOTIFY_HOST = os.environ.get('RDB_NOTIFY_HOST') or '127.0.0.1'
-RDB_CONTEXT_LINES = os.environ.get('RDB_CONTEXT_LINES') or 60
+SDB_HOST = os.environ.get('SDB_HOST') or '127.0.0.1'
+SDB_PORT = int(os.environ.get('SDB_PORT') or DEFAULT_PORT)
+SDB_NOTIFY_HOST = os.environ.get('SDB_NOTIFY_HOST') or '127.0.0.1'
+SDB_CONTEXT_LINES = os.environ.get('SDB_CONTEXT_LINES') or 60
 
 #: Holds the currently active debugger.
 _current = [None]
@@ -50,9 +50,9 @@ _current = [None]
 _frame = getattr(sys, '_getframe')
 
 NO_AVAILABLE_PORT = """\
-{self.ident}: Couldn't find an available port.
+Couldn't find an available port.
 
-Please specify one using the RDB_PORT environment variable.
+Please specify one using the SDB_PORT environment variable.
 """
 
 BANNER = """\
@@ -67,15 +67,15 @@ SESSION_STARTED = '{self.ident}: Now in session with {self.remote_addr}.'
 SESSION_ENDED = '{self.ident}: Session with {self.remote_addr} ended.'
 
 
-class Rdb(Pdb):
-    """Remote debugger."""
+class Sdb(Pdb):
+    """Socket-based debugger."""
 
-    me = 'Remote Debugger'
+    me = 'Socket Debugger'
     _prev_outs = None
     _sock = None
 
-    def __init__(self, host=RDB_HOST, port=RDB_PORT,
-                 notify_host=RDB_NOTIFY_HOST, context_lines=RDB_CONTEXT_LINES,
+    def __init__(self, host=SDB_HOST, port=SDB_PORT,
+                 notify_host=SDB_NOTIFY_HOST, context_lines=SDB_CONTEXT_LINES,
                  port_search_limit=100, port_skew=+0, out=sys.stdout):
         self.active = True
         self.out = out
@@ -89,9 +89,9 @@ class Rdb(Pdb):
         )
         self._sock.setblocking(1)
         self._sock.listen(1)
-        self.ident = '{0}:{1}'.format(self.me, this_port)
         self.host = host
         self.port = this_port
+        self.ident = '{0}:{1}'.format(self.me, this_port)
         self.say(BANNER.format(self=self))
 
         self._client, address = self._sock.accept()
@@ -126,6 +126,7 @@ class Rdb(Pdb):
                     )
                 return _sock, this_port
         else:
+            import pdb; pdb.set_trace()
             raise Exception(NO_AVAILABLE_PORT.format(self=self))
 
     def __enter__(self):
@@ -232,10 +233,10 @@ class Rdb(Pdb):
 
 def debugger():
     """Return the current debugger instance, or create if none."""
-    rdb = _current[0]
-    if rdb is None or not rdb.active:
-        rdb = _current[0] = Rdb()
-    return rdb
+    sdb = _current[0]
+    if sdb is None or not sdb.active:
+        sdb = _current[0] = Sdb()
+    return sdb
 
 
 def set_trace(frame=None):
@@ -308,7 +309,7 @@ def listen():
     def _consume(queue):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.bind(('0.0.0.0', 6899))
-        print('listening for rdb notifications on :6899...')
+        print('listening for sdb notifications on :6899...')
         while True:
             r, w, x = select.select([sock], [], [])
             for i in r:
@@ -328,7 +329,7 @@ def listen():
                 port = int(port)
                 print('opening telnet session at port :%d...' % port)
                 telnet(port)
-                print('listening for rdb notifications on :6899...')
+                print('listening for sdb notifications on :6899...')
             except Empty:
                 pass
     except KeyboardInterrupt:

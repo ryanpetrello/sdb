@@ -1,13 +1,13 @@
-Rdb
+Sdb
 ===
-A telnet-based remote debugger for Python.  Based on `celery.contrib.rdb`.
+A socket-based remote debugger for Python.  Based on `celery.contrib.rdb`.
 
 ![Alt text](./screen.png)
 
 Usage
 -----
 
-Use the `rdb` library to set remote breakpoints in any non-interactive or
+Use the `sdb` library to set remote breakpoints in any non-interactive or
 background Python code and debug interactively over a telnet session:
 
 ```python
@@ -25,8 +25,8 @@ background Python code and debug interactively over a telnet session:
             # You can access it from your host machine using telnet:
             #
             # $ telnet <hostname> <port>
-            import rdb
-            rdb.set_trace()
+            import sdb
+            sdb.set_trace()
 ```
 
 Keep in mind that when you interactively debug in this way, any process
@@ -36,11 +36,11 @@ and concludes the debugging session with a `continue` command.
 Automatically Connecting to Breakpoints
 ---------------------------------------
 
-To simplify remote debugging session management, you can use `rdb-listen`
+To simplify remote debugging session management, you can use `sdb-listen`
 to automatically discover open remote debugging sessions and connect to them:
 
 ```
-$ rdb-listen
+$ sdb-listen
 ```
 
 This will open a Python process that listens for new debugger sessions and
@@ -49,6 +49,6 @@ an _entirely different host_, you can optionally specify the hostname where
 `rbd-listen` is running:
 
 ```python
-import rdb
-rdb.set_trace(notify_host='docker.for.mac.localhost')
+import sdb
+sdb.set_trace(notify_host='docker.for.mac.localhost')
 ```
