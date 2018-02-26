@@ -32,6 +32,9 @@ that encounters a breakpoint will wait until an active client is established
 (it won't handle additional tasks) and concludes the debugging session with
 a `continue` command.
 
+Automatically Connecting to Breakpoints
+---------------------------------------
+
 To simplify remote debugging session management, you can use `rdb-listen`
 to automatically discover open remote debugging sessions and connect to them:
 
@@ -40,4 +43,10 @@ $ rdb-listen
 ```
 
 This will open a Python process that listens for new debugger sessions and
-automatically connects to them for you.
+automatically connects to them for you.  If your breakpoint is run on
+an _entirely different host_, you can optionally specify the hostname to notify:
+
+```python
+import rdb
+rdb.set_trace(notify_host='docker.for.mac.localhost')
+```
