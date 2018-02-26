@@ -1,5 +1,4 @@
 from __future__ import print_function
-import rlcompleter
 try:
     import readline
 except ImportError:
@@ -128,9 +127,6 @@ class Rdb(Pdb):
         else:
             raise Exception(NO_AVAILABLE_PORT.format(self=self))
 
-    def say(self, m):
-        print(m, file=self.out)
-
     def __enter__(self):
         return self
 
@@ -164,6 +160,73 @@ class Rdb(Pdb):
     def set_quit(self):
         # this raises a BdbQuit exception that we're unable to catch.
         sys.settrace(None)
+
+    def cmdloop(self):
+        self.do_list(tuple())
+        return cmd.Cmd.cmdloop(self)
+
+    def do_list(self, args):
+        lines = 60
+        context = (lines - 2) / 2
+        if not args:
+            first = max(1, self.curframe.f_lineno - context)
+            last = first + context * 2 - 1
+            args = "(%s, %s)" % (first, last)
+        self.lineno = None
+        with style(self, (
+            self.curframe.f_code.co_filename, self.curframe.f_lineno - context)
+        ):
+            return Pdb.do_list(self, args)
+    do_l = do_list
+
+    def format_stack_entry(self, *args, **kwargs):
+        entry = Pdb.format_stack_entry(self, *args, **kwargs)
+        return '\n'.join(
+            filter(lambda x: not x.startswith('->'), entry.splitlines())
+        )
+
+    def print_stack_entry(self, *args, **kwargs):
+        with style(self):
+            return Pdb.print_stack_entry(self, *args, **kwargs)
+
+    def set_next(self, curframe):
+        os.system('clear')
+        Pdb.set_next(self, curframe)
+
+    def set_return(self, arg):
+        os.system('clear')
+        Pdb.set_return(self, arg)
+
+    def set_step(self):
+        os.system('clear')
+        Pdb.set_step(self)
+
+    def default(self, line):
+        with style(self):
+            return Pdb.default(self, line)
+
+    def parseline(self, line):
+        line = line.strip()
+        match = re.search('^([0-9]+)([a-zA-Z]+)', line)
+        if match:
+            times, command = match.group(1), match.group(2)
+            line = command
+            self.cmdqueue.extend(list(command * (int(times) - 1)))
+        if line == '?':
+            line = 'dir()'
+        elif line.endswith('??'):
+            line = "import inspect; print ''.join(inspect.getsourcelines(%s)[0][:25])" % line[:-2]
+        elif line.endswith('?'):
+            line = 'dir(%s)' % line[:-1]
+        return cmd.Cmd.parseline(self, line)
+
+    def displayhook(self, obj):
+        if obj is not None and not isinstance(obj, list):
+            return pprint.pprint(obj)
+        return Pdb.displayhook(self, obj)
+
+    def say(self, m):
+        logger.warning(m)
 
 
 def debugger():
@@ -236,73 +299,6 @@ def style(im_self, filepart=None, lexer=None):
     if value.strip():
         old_stdout.write(value)
     im_self.stdout = old_stdout
-
-    def cmdloop(self):
-        self.do_list(tuple())
-        return cmd.Cmd.cmdloop(self)
-
-    def do_list(self, args):
-        lines = 60
-        context = (lines - 2) / 2
-        if not args:
-            first = max(1, self.curframe.f_lineno - context)
-            last = first + context * 2 - 1
-            args = "(%s, %s)" % (first, last)
-        self.lineno = None
-        with style(self, (
-            self.curframe.f_code.co_filename, self.curframe.f_lineno - context)
-        ):
-            return Rdb.do_list(self, args)
-    do_l = do_list
-
-    def format_stack_entry(self, *args, **kwargs):
-        entry = Rdb.format_stack_entry(self, *args, **kwargs)
-        return '\n'.join(
-            filter(lambda x: not x.startswith('->'), entry.splitlines())
-        )
-
-    def print_stack_entry(self, *args, **kwargs):
-        with style(self):
-            return Rdb.print_stack_entry(self, *args, **kwargs)
-
-    def set_next(self, curframe):
-        os.system('clear')
-        Rdb.set_next(self, curframe)
-
-    def set_return(self, arg):
-        os.system('clear')
-        Rdb.set_return(self, arg)
-
-    def set_step(self):
-        os.system('clear')
-        Rdb.set_step(self)
-
-    def default(self, line):
-        with style(self):
-            return Rdb.default(self, line)
-
-    def parseline(self, line):
-        line = line.strip()
-        match = re.search('^([0-9]+)([a-zA-Z]+)', line)
-        if match:
-            times, command = match.group(1), match.group(2)
-            line = command
-            self.cmdqueue.extend(list(command * (int(times) - 1)))
-        if line == '?':
-            line = 'dir()'
-        elif line.endswith('??'):
-            line = "import inspect; print ''.join(inspect.getsourcelines(%s)[0][:25])" % line[:-2]
-        elif line.endswith('?'):
-            line = 'dir(%s)' % line[:-1]
-        return cmd.Cmd.parseline(self, line)
-
-    def displayhook(self, obj):
-        if obj is not None and not isinstance(obj, list):
-            return pprint.pprint(obj)
-        return Rdb.displayhook(self, obj)
-
-    def say(self, m):
-        logger.warning(m)
 
 
 def listen():

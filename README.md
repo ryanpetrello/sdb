@@ -1,6 +1,6 @@
 Rdb
 ===
-A telnet-based remote debugger for Python.  Based on celery.contrib.rdb
+A telnet-based remote debugger for Python.  Based on `celery.contrib.rdb`.
 
 Usage
 -----
