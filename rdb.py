@@ -43,6 +43,7 @@ DEFAULT_PORT = 6899
 RDB_HOST = os.environ.get('RDB_HOST') or '127.0.0.1'
 RDB_PORT = int(os.environ.get('RDB_PORT') or DEFAULT_PORT)
 RDB_NOTIFY_HOST = os.environ.get('RDB_NOTIFY_HOST') or '127.0.0.1'
+RDB_CONTEXT_LINES = os.environ.get('RDB_CONTEXT_LINES') or 60
 
 #: Holds the currently active debugger.
 _current = [None]
@@ -75,14 +76,15 @@ class Rdb(Pdb):
     _sock = None
 
     def __init__(self, host=RDB_HOST, port=RDB_PORT,
-                 notify_host=RDB_NOTIFY_HOST, port_search_limit=100,
-                 port_skew=+0, out=sys.stdout):
+                 notify_host=RDB_NOTIFY_HOST, context_lines=RDB_CONTEXT_LINES,
+                 port_search_limit=100, port_skew=+0, out=sys.stdout):
         self.active = True
         self.out = out
 
         self._prev_handles = sys.stdin, sys.stdout
 
         self.notify_host = notify_host
+        self.context_lines = int(context_lines)
         self._sock, this_port = self.get_avail_port(
             host, port, port_search_limit, port_skew,
         )
@@ -166,7 +168,7 @@ class Rdb(Pdb):
         return cmd.Cmd.cmdloop(self)
 
     def do_list(self, args):
-        lines = 60
+        lines = self.context_lines
         context = (lines - 2) / 2
         if not args:
             first = max(1, self.curframe.f_lineno - context)
