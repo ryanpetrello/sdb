@@ -2,6 +2,8 @@ Rdb
 ===
 A telnet-based remote debugger for Python.  Based on `celery.contrib.rdb`.
 
+![Alt text](./screen.png)
+
 Usage
 -----
 
@@ -29,8 +31,7 @@ background Python code and debug interactively over a telnet session:
 
 Keep in mind that when you interactively debug in this way, any process
 that encounters a breakpoint will wait until an active client is established
-(it won't handle additional tasks) and concludes the debugging session with
-a `continue` command.
+and concludes the debugging session with a `continue` command.
 
 Automatically Connecting to Breakpoints
 ---------------------------------------
@@ -44,7 +45,8 @@ $ rdb-listen
 
 This will open a Python process that listens for new debugger sessions and
 automatically connects to them for you.  If your breakpoint is run on
-an _entirely different host_, you can optionally specify the hostname to notify:
+an _entirely different host_, you can optionally specify the hostname where
+`rbd-listen` is running:
 
 ```python
 import rdb

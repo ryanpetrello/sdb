@@ -31,7 +31,6 @@ from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import Terminal256Formatter
 
-logger = logging.getLogger(__file__)
 
 __all__ = (
     'RDB_HOST', 'RDB_PORT', 'RDB_NOTIFY_HOST',
@@ -228,7 +227,7 @@ class Rdb(Pdb):
         return Pdb.displayhook(self, obj)
 
     def say(self, m):
-        logger.warning(m)
+        logging.warning(m)
 
 
 def debugger():
