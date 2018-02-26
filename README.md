@@ -15,7 +15,7 @@ background Python code and debug interactively over a telnet session:
 
     class SomeCode(object):
 
-        def run(self, pk, **kwargs):
+        def run(self, **kwargs):
             # This will set a breakpoint and open an interactive Python
             # debugger exposed on a random port between 6899-6999.  The chosen
             # port will be reported as a warning
@@ -24,7 +24,7 @@ background Python code and debug interactively over a telnet session:
             #
             # You can access it from your host machine using telnet:
             #
-            # $ telnet localhost <port>
+            # $ telnet <hostname> <port>
             import rdb
             rdb.set_trace()
 ```
