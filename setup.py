@@ -7,10 +7,24 @@ with open('README.rst') as f:
 
 setup(
     name='sdb',
-    version='1.0',
+    version='1.1',
     author='Ryan Petrello',
     author_email='ryan@ryanpetrello.com',
-    description=DESCRIPTION,
+    description='A socket-based remote debugger for Python',
+    long_description=DESCRIPTION,
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Environment :: Console',
+        'Intended Audience :: Developers',
+        'Intended Audience :: System Administrators',
+        'License :: OSI Approved :: BSD License',
+        'Operating System :: MacOS :: MacOS X',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
+    ],
     install_requires='pygments',
     py_modules=['sdb'],
     entry_points={
