@@ -2,6 +2,8 @@ Sdb
 ===
 A socket-based remote debugger for Python.  Based on `celery.contrib.rdb`.
 
+![example](./screen.png)
+
 Usage
 -----
 
