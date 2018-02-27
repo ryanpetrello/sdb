@@ -239,7 +239,6 @@ class Sdb(Pdb):
 
     def onecmd(self, line):
         line = line.strip()
-        self.say(line)
         if line.endswith('<!TAB!>'):
             line = line.split('<!TAB!>')[0]
             matches = self.complete(line)
@@ -391,6 +390,8 @@ def telnet(port):
     line_buff = ''
     completing = None
     matches = []
+    history = []
+    history_pos = 0
     while True:
         socket_list = [sys.stdin, s]
         try:
@@ -415,18 +416,32 @@ def telnet(port):
                                     line_buff = line_buff.replace(completing, matches[0])
                                 sys.stdout.write(line_buff)
                         else:
-                            sys.stdout.write(data)
+                            sys.stdout.write('\n' + data)
                         sys.stdout.flush()
                 else:
                     char = sys.stdin.read(1)
-                    if char == '\n':
+                    if char == '\x1b':
+                        char += sys.stdin.read(2)
+                        if char in ('\x1b[A', '\x1b[B'):
+                            if char == '\x1b[A':
+                                history_pos -= 1
+                            if char == '\x1b[B':
+                                history_pos += 1
+                            try:
+                                line_buff = history[history_pos]
+                            except IndexError:
+                                line_buff = ''
+                                history_pos = 0
+                            sys.stdout.write('\x1b[2K\r%s' % line_buff)
+                    elif char == '\n':
                         completing = None
+                        history_pos = 0
+                        history.append(line_buff)
                         s.send(line_buff + '\n')
                         line_buff = ''
-                    if char == '\t':
+                    elif char == '\t':
                         completing = line_buff.rsplit(' ', 1)[-1]
                         s.send(completing + '<!TAB!>\n')
-                        #line_buff = ''
                     elif char in ('\x08', '\x7f'):
                         line_buff = line_buff[:-1]
                         sys.stdout.write('\x1b[2K\r%s' % line_buff)
