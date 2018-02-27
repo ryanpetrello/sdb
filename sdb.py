@@ -1,15 +1,4 @@
 from __future__ import print_function
-try:
-    import readline
-except ImportError:
-    print("Module readline not available.")
-else:
-    if 'libedit' in readline.__doc__:
-        readline.parse_and_bind("bind ^I rl_complete")
-    else:
-        readline.parse_and_bind("tab: complete")
-
-import sys
 
 import cmd
 import contextlib
@@ -18,10 +7,14 @@ import logging
 import os
 import pprint
 import re
+import readline
+import rlcompleter
 import select
 import socket
 import sys
+import termios
 import threading
+import tty
 from cStringIO import StringIO
 from multiprocessing import process
 from pdb import Pdb
@@ -67,12 +60,28 @@ SESSION_STARTED = '{self.ident}: Now in session with {self.remote_addr}.'
 SESSION_ENDED = '{self.ident}: Session with {self.remote_addr} ended.'
 
 
+class SocketCompleter(rlcompleter.Completer):
+
+    def global_matches(self, text):
+        """Compute matches when text is a simple name.
+        Return a list of all keywords, built-in functions and names currently
+        defined in self.namespace that match.
+        """
+        matches = []
+        n = len(text)
+        for word in self.namespace:
+            if word[:n] == text and word != "__builtins__":
+                matches.append(word)
+        return matches
+
+
 class Sdb(Pdb):
     """Socket-based debugger."""
 
     me = 'Socket Debugger'
     _prev_outs = None
     _sock = None
+    _completer = SocketCompleter()
 
     def __init__(self, host=SDB_HOST, port=SDB_PORT,
                  notify_host=SDB_NOTIFY_HOST, context_lines=SDB_CONTEXT_LINES,
@@ -99,8 +108,17 @@ class Sdb(Pdb):
         self.remote_addr = ':'.join(str(v) for v in address)
         self.say(SESSION_STARTED.format(self=self))
         self._handle = sys.stdin = sys.stdout = self._client.makefile('rw')
-        Pdb.__init__(self, completekey='tab',
-                     stdin=self._handle, stdout=self._handle)
+        Pdb.__init__(self, stdin=self._handle, stdout=self._handle)
+        self.prompt = ''
+
+    def complete(self, text):
+        ns = {}
+        ns.update(self.curframe.f_globals.copy())
+        ns.update(self.curframe.f_locals.copy())
+        self._completer.namespace = ns
+        self._completer.use_main_ns = 0
+        matches = self._completer.complete(text, 0)
+        return self._completer.matches
 
     def get_avail_port(self, host, port, search_limit=100, skew=+0):
         try:
@@ -126,7 +144,6 @@ class Sdb(Pdb):
                     )
                 return _sock, this_port
         else:
-            import pdb; pdb.set_trace()
             raise Exception(NO_AVAILABLE_PORT.format(self=self))
 
     def __enter__(self):
@@ -178,7 +195,7 @@ class Sdb(Pdb):
         with style(self, (
             self.curframe.f_code.co_filename, self.curframe.f_lineno - context)
         ):
-            return Pdb.do_list(self, args)
+            Pdb.do_list(self, args)
     do_l = do_list
 
     def format_stack_entry(self, *args, **kwargs):
@@ -209,6 +226,20 @@ class Sdb(Pdb):
         elif line.endswith('?'):
             line = 'dir(%s)' % line[:-1]
         return cmd.Cmd.parseline(self, line)
+
+    def emptyline(self):
+        pass
+
+    def onecmd(self, line):
+        line = line.strip()
+        if line.endswith('<!TAB!>'):
+            line = line.split('<!TAB!>')[0]
+            matches = self.complete(line)
+            if len(matches):
+                self.stdout.write(' '.join(matches))
+                self.stdout.flush()
+            return False
+        return Pdb.onecmd(self, line)
 
     def displayhook(self, obj):
         if obj is not None and not isinstance(obj, list):
@@ -307,7 +338,9 @@ def listen():
     worker.setDaemon(True)
     worker.start()
 
+    orig_tty = termios.tcgetattr(sys.stdin)
     try:
+        tty.setcbreak(sys.stdin.fileno())
         while True:
             try:
                 port = queue.get(timeout=1)
@@ -323,6 +356,17 @@ def listen():
     except KeyboardInterrupt:
         print('got Ctrl-C')
         queue.put('q')
+    finally:
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, orig_tty)
+
+
+def c():
+    raise SystemExit()
+if 'libedit' in readline.__doc__:
+    readline.parse_and_bind("bind ^I rl_complete")
+else:
+    readline.parse_and_bind("tab: complete")
+readline.set_completer(c)
 
 
 def telnet(port):
@@ -336,6 +380,9 @@ def telnet(port):
         return
     print('connected to %s:%d' % ('0.0.0.0', port))
 
+    line_buff = ''
+    completing = None
+    matches = []
     while True:
         socket_list = [sys.stdin, s]
         try:
@@ -347,10 +394,36 @@ def telnet(port):
                         print('connection closed')
                         return
                     else:
-                        sys.stdout.write(data)
+                        if completing is not None:
+                            sys.stdout.write('\x1b[2K\r')
+                            matches = data.split(' ')
+                            if len(matches) > 1:
+                                matches[0] = '\033[93m' + matches[0] + '\033[0m'
+                                line_buff = completing
+                                sys.stdout.write('\n'.join(matches) + '\n' + line_buff)
+                            else:
+                                line_buff = matches[0]
+                                sys.stdout.write(' '.join(matches))
+                        else:
+                            sys.stdout.write(data)
+                        sys.stdout.flush()
                 else:
-                    msg = sys.stdin.readline()
-                    s.send(msg)
+                    char = sys.stdin.read(1)
+                    if char == '\n':
+                        completing = None
+                        s.send(line_buff + '\n')
+                        line_buff = ''
+                    if char == '\t':
+                        completing = line_buff
+                        s.send(line_buff + '<!TAB!>\n')
+                        line_buff = ''
+                    elif char in ('\x08', '\x7f'):
+                        line_buff = line_buff[:-1]
+                        sys.stdout.write('\x1b[2K\r%s' % line_buff)
+                    else:
+                        line_buff += char
+                        sys.stdout.write(char)
+                    sys.stdout.flush()
         except select.error as e:
             if e[0] != errno.EINTR:
                 raise
