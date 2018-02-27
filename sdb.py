@@ -115,6 +115,7 @@ class Sdb(Pdb):
         ns = {}
         ns.update(self.curframe.f_globals.copy())
         ns.update(self.curframe.f_locals.copy())
+        ns.update(__builtins__)
         self._completer.namespace = ns
         self._completer.use_main_ns = 0
         matches = self._completer.complete(text, 0)
@@ -219,6 +220,12 @@ class Sdb(Pdb):
             times, command = match.group(1), match.group(2)
             line = command
             self.cmdqueue.extend(list(command * (int(times) - 1)))
+        if line.startswith('lines '):
+            try:
+                self.context_lines = int(line.split(' ')[1])
+                line = 'l'
+            except ValueError:
+                pass
         if line == '?':
             line = 'dir()'
         elif line.endswith('??'):
@@ -232,6 +239,7 @@ class Sdb(Pdb):
 
     def onecmd(self, line):
         line = line.strip()
+        self.say(line)
         if line.endswith('<!TAB!>'):
             line = line.split('<!TAB!>')[0]
             matches = self.complete(line)
@@ -398,12 +406,14 @@ def telnet(port):
                             sys.stdout.write('\x1b[2K\r')
                             matches = data.split(' ')
                             if len(matches) > 1:
-                                matches[0] = '\033[93m' + matches[0] + '\033[0m'
-                                line_buff = completing
-                                sys.stdout.write('\n'.join(matches) + '\n' + line_buff)
+                                if completing:
+                                    line_buff = line_buff.replace(completing, matches[0])
+                                    matches[0] = '\033[93m' + matches[0] + '\033[0m'
+                                    sys.stdout.write('\n'.join(matches) + '\n' + line_buff)
                             else:
-                                line_buff = matches[0]
-                                sys.stdout.write(' '.join(matches))
+                                if completing:
+                                    line_buff = line_buff.replace(completing, matches[0])
+                                sys.stdout.write(line_buff)
                         else:
                             sys.stdout.write(data)
                         sys.stdout.flush()
@@ -414,9 +424,9 @@ def telnet(port):
                         s.send(line_buff + '\n')
                         line_buff = ''
                     if char == '\t':
-                        completing = line_buff
-                        s.send(line_buff + '<!TAB!>\n')
-                        line_buff = ''
+                        completing = line_buff.rsplit(' ', 1)[-1]
+                        s.send(completing + '<!TAB!>\n')
+                        #line_buff = ''
                     elif char in ('\x08', '\x7f'):
                         line_buff = line_buff[:-1]
                         sys.stdout.write('\x1b[2K\r%s' % line_buff)
