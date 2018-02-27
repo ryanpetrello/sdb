@@ -53,3 +53,28 @@ an _entirely different host_, you can optionally specify the hostname where
 
 The `sbd-listen` tool also includes support for tab-completion and history
 tracking.
+
+Other Tips
+----------
+`sdb` supports the same commands and aliases as Python's [default pdb implementation](https://docs.python.org/2/library/pdb.html#debugger-commands).
+
+`sdb` includes a few additional debugger aliases that make interactive debugging more pleasant:
+
+- `?` is the same as calling `dir()`
+- `??` can be added to the end of a function call to view its source lines e.g., `requests.post??` might print:
+
+```python
+def post(url, data=None, json=None, **kwargs):
+    r"""Sends a POST request.
+
+    :param url: URL for the new :class:`Request` object.
+    :param data: (optional) Dictionary (will be form-encoded), bytes, or file-like object to send in the body of the :class:`Request`.
+    :param json: (optional) json data to send in the body of the :class:`Request`.
+    :param \*\*kwargs: Optional arguments that ``request`` takes.
+    :return: :class:`Response <Response>` object
+    :rtype: requests.Response
+    """
+
+    return request('post', url, data=data, json=json, **kwargs)
+```
+- By default, `sdb` attempts to fill your entire console with debugger output (representing the current line position for the current frame).  You can adjust the height of `sdb`'s draw window with the `lines` command, e.g., `lines 15`.
