@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name='sdb',
-    version='1.3',
+    version='1.4',
     author='Ryan Petrello',
     author_email='ryan@ryanpetrello.com',
     url='https://github.com/ryanpetrello/sdb',
