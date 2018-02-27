@@ -2,9 +2,6 @@
 
 from distutils.core import setup
 
-with open('README.rst') as f:
-    DESCRIPTION = f.read()
-
 setup(
     name='sdb',
     version='1.3',
@@ -12,7 +9,6 @@ setup(
     author_email='ryan@ryanpetrello.com',
     url='https://github.com/ryanpetrello/sdb',
     description='A socket-based remote debugger for Python',
-    long_description=DESCRIPTION,
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
