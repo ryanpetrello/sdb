@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
+import unittest
+
+
+def suite():
+    test_loader = unittest.TestLoader()
+    test_suite = test_loader.discover('tests', pattern='test_*.py')
+    return test_suite
+
 
 setup(
     name='sdb',
@@ -23,6 +31,7 @@ setup(
         'Programming Language :: Python :: 3',
     ],
     install_requires='pygments',
+    test_suite='setup.suite',
     py_modules=['sdb'],
     entry_points={
         'console_scripts': [

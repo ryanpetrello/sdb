@@ -14,10 +14,16 @@ import sys
 import termios
 import threading
 import tty
-from cStringIO import StringIO
 from multiprocessing import process
 from pdb import Pdb
-from Queue import Queue, Empty
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+try:
+    from Queue import Queue, Empty
+except ImportError:
+    from db.pyueue import Queue, Empty
 
 from pygments import highlight
 from pygments.lexers import PythonLexer
@@ -25,7 +31,7 @@ from pygments.formatters import Terminal256Formatter
 
 
 __all__ = (
-    'SDB_HOST', 'SDB_PORT', 'SDB_NOTIFY_HOST',
+    'SDB_HOST', 'SDB_PORT', 'SDB_NOTIFY_HOST', 'SDB_COLORIZE',
     'DEFAULT_PORT', 'Sdb', 'debugger', 'set_trace',
 )
 
@@ -35,6 +41,7 @@ SDB_HOST = os.environ.get('SDB_HOST') or '127.0.0.1'
 SDB_PORT = int(os.environ.get('SDB_PORT') or DEFAULT_PORT)
 SDB_NOTIFY_HOST = os.environ.get('SDB_NOTIFY_HOST') or '127.0.0.1'
 SDB_CONTEXT_LINES = os.environ.get('SDB_CONTEXT_LINES') or 60
+SDB_COLORIZE = bool(int(os.environ.get('SDB_COLORIZE') or 1))
 
 #: Holds the currently active debugger.
 _current = [None]
@@ -84,9 +91,11 @@ class Sdb(Pdb):
 
     def __init__(self, host=SDB_HOST, port=SDB_PORT,
                  notify_host=SDB_NOTIFY_HOST, context_lines=SDB_CONTEXT_LINES,
-                 port_search_limit=100, port_skew=+0, out=sys.stdout):
+                 port_search_limit=100, port_skew=+0, out=sys.stdout,
+                 colorize=SDB_COLORIZE):
         self.active = True
         self.out = out
+        self.colorize = colorize
 
         self._prev_handles = sys.stdin, sys.stdout
 
@@ -291,33 +300,34 @@ def style(im_self, filepart=None, lexer=None):
                 file_cache[filepath] = source.readlines()
         value = ''.join(file_cache[filepath][:lineno - 1]) + value
 
-    formatter = Terminal256Formatter(style='friendly')
-    value = highlight(value, lexer(), formatter)
+    if im_self.colorize is True:
+        formatter = Terminal256Formatter(style='friendly')
+        value = highlight(value, lexer(), formatter)
 
-    # Properly format line numbers when they show up in multi-line strings
-    strcolor, _ = formatter.style_string['Token.Literal.String']
-    intcolor, _ = formatter.style_string['Token.Literal.Number.Integer']
-    value = re.sub(
-        r'%s([0-9]+)' % re.escape(strcolor),
-        lambda match: intcolor + match.group(1) + strcolor,
-        value,
-    )
+        # Properly format line numbers when they show up in multi-line strings
+        strcolor, _ = formatter.style_string['Token.Literal.String']
+        intcolor, _ = formatter.style_string['Token.Literal.Number.Integer']
+        value = re.sub(
+            r'%s([0-9]+)' % re.escape(strcolor),
+            lambda match: intcolor + match.group(1) + strcolor,
+            value,
+        )
 
-    # Highlight the "current" line in yellow for visibility
-    lineno = im_self.curframe.f_lineno
+        # Highlight the "current" line in yellow for visibility
+        lineno = im_self.curframe.f_lineno
 
-    value = re.sub(
-        '(?<!\()%s%s[^\>]+>[^\[]+\[39m([^\x1b]+)[^m]+m([^\n]+)' % (re.escape(intcolor), lineno),  # noqa
-        lambda match: ''.join([
-            str(lineno),
-            ' ->',
-            '\x1b[93m',
-            match.group(1),
-            re.sub('\x1b[^m]+m', '', match.group(2)),
-            '\x1b[0m'
-        ]),
-        value
-    )
+        value = re.sub(
+            '(?<!\()%s%s[^\>]+>[^\[]+\[39m([^\x1b]+)[^m]+m([^\n]+)' % (re.escape(intcolor), lineno),  # noqa
+            lambda match: ''.join([
+                str(lineno),
+                ' ->',
+                '\x1b[93m',
+                match.group(1),
+                re.sub('\x1b[^m]+m', '', match.group(2)),
+                '\x1b[0m'
+            ]),
+            value
+        )
 
     if filepart:
         _, first = filepart

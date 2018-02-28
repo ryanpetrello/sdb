@@ -50,7 +50,7 @@ an _entirely different host_, you can optionally specify the hostname where
 
 ```python
    import sdb
-   sdb.set_trace(notify_host='docker.for.mac.internal')
+   sdb.Sdb(notify_host='docker.for.mac.internal').set_trace()
 ```
 
 The `sbd-listen` tool also includes support for tab-completion and history
@@ -59,6 +59,14 @@ tracking.
 Other Tips
 ----------
 `sdb` supports the same commands and aliases as Python's [default pdb implementation](https://docs.python.org/2/library/pdb.html#debugger-commands).
+
+`sdb` colorizes output by default.  To disable this:
+
+
+```python
+   import sdb
+   sdb.Sdb(colorize=False).set_trace()
+```
 
 `sdb` includes a few additional debugger aliases that make interactive debugging more pleasant:
 
