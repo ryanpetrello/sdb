@@ -6,7 +6,7 @@ import time
 import unittest
 
 import pexpect
-from six import StringIO
+import six
 
 import sdb
 
@@ -23,7 +23,7 @@ class TestSocketTrace(unittest.TestCase):
         sock.bind((HOST, 6899))
         r, w, x = select.select([sock], [], [])
         for i in r:
-            self.port = i.recv(1024)
+            self.port = i.recv(1024).decode('utf-8')
 
     def set_trace(self):
         time.sleep(1)
@@ -34,12 +34,16 @@ class TestBasicConnectivity(TestSocketTrace):
 
     def test_udp_announcement(self):
         assert 6899 <= int(self.port) < 7000
+        child = pexpect.spawn('telnet', [HOST, self.port])
+        child.sendline('c')
+        child.expect([pexpect.EOF])
+        assert not child.isalive()
 
 
 class TestControlCommands(TestSocketTrace):
 
     def assert_command_yields(self, command, expected_lines):
-        stdout = StringIO()
+        stdout = six.BytesIO() if six.PY3 else six.StringIO()
         child = pexpect.spawn('telnet', [HOST, self.port])
         child.logfile_read = stdout
         child.sendline(command)
@@ -47,7 +51,7 @@ class TestControlCommands(TestSocketTrace):
         child.expect([pexpect.EOF])
         assert not child.isalive()
         for line in expected_lines:
-            assert line in stdout.getvalue()
+            assert line.encode('utf-8') in stdout.getvalue()
 
     def test_list(self):
         self.assert_command_yields(

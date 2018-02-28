@@ -4,12 +4,6 @@ from setuptools import setup
 import unittest
 
 
-def suite():
-    test_loader = unittest.TestLoader()
-    test_suite = test_loader.discover('tests', pattern='test_*.py')
-    return test_suite
-
-
 setup(
     name='sdb',
     version='1.4',
@@ -30,8 +24,7 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
     ],
-    install_requires='pygments',
-    test_suite='setup.suite',
+    install_requires=['pygments', 'six'],
     py_modules=['sdb'],
     entry_points={
         'console_scripts': [

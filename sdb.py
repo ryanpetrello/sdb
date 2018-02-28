@@ -16,15 +16,8 @@ import threading
 import tty
 from multiprocessing import process
 from pdb import Pdb
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
-try:
-    from Queue import Queue, Empty
-except ImportError:
-    from db.pyueue import Queue, Empty
-
+import six
+from six.moves.queue import Queue, Empty
 from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import Terminal256Formatter
@@ -149,7 +142,8 @@ class Sdb(Pdb):
             else:
                 if self.notify_host:
                     socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(
-                        str(this_port), (self.notify_host, 6899)
+                        str(this_port).encode('utf-8'),
+                        (self.notify_host, 6899)
                     )
                 return _sock, this_port
         else:
@@ -199,7 +193,10 @@ class Sdb(Pdb):
         if not args:
             first = max(1, self.curframe.f_lineno - context)
             last = first + context * 2 - 1
-            args = "(%s, %s)" % (first, last)
+            args = six.text_type('%s, %s') % (
+                six.text_type(int(first)),
+                six.text_type(int(last)),
+            )
         self.lineno = None
         with style(self, (
             self.curframe.f_code.co_filename, self.curframe.f_lineno - context)
@@ -285,7 +282,7 @@ def style(im_self, filepart=None, lexer=None):
 
     lexer = PythonLexer
     old_stdout = im_self.stdout
-    buff = StringIO()
+    buff = six.StringIO()
     im_self.stdout = buff
     yield
 
@@ -298,7 +295,7 @@ def style(im_self, filepart=None, lexer=None):
         if filepath not in file_cache:
             with open(filepath, 'r') as source:
                 file_cache[filepath] = source.readlines()
-        value = ''.join(file_cache[filepath][:lineno - 1]) + value
+        value = ''.join(file_cache[filepath][:int(lineno) - 1]) + value
 
     if im_self.colorize is True:
         formatter = Terminal256Formatter(style='friendly')
