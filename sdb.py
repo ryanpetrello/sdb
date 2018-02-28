@@ -425,7 +425,8 @@ def telnet(port):
                                     )
                                 sys.stdout.write(line_buff)
                         else:
-                            sys.stdout.write('\n' + data)
+                            sys.stdout.write('\n')
+                            sys.stdout.write(data.decode('utf-8'))
                         sys.stdout.flush()
                 else:
                     char = sys.stdin.read(1)
@@ -446,11 +447,15 @@ def telnet(port):
                         completing = None
                         history_pos = 0
                         history.append(line_buff)
-                        s.send(line_buff + '\n')
+                        s.send(
+                            line_buff.encode('utf-8') + '\n'.encode('utf-8')
+                        )
                         line_buff = ''
                     elif char == '\t':
                         completing = line_buff.rsplit(' ', 1)[-1]
-                        s.send(completing + '<!TAB!>\n')
+                        s.send(
+                            completing.encode('utf-8') + '<!TAB!>\n'.encode('utf-8')  # noqa
+                        )
                     elif char in ('\x08', '\x7f'):
                         line_buff = line_buff[:-1]
                         sys.stdout.write('\x1b[2K\r%s' % line_buff)
