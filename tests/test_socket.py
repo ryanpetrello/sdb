@@ -2,7 +2,6 @@ import inspect
 import multiprocessing
 import select
 import socket
-import time
 import unittest
 
 import pexpect
@@ -26,7 +25,6 @@ class TestSocketTrace(unittest.TestCase):
             self.port = i.recv(1024).decode('utf-8')
 
     def set_trace(self):
-        time.sleep(1)
         sdb.Sdb(notify_host=HOST, colorize=False).set_trace()
 
 
