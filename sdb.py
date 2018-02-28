@@ -7,7 +7,6 @@ import logging
 import os
 import pprint
 import re
-import readline
 import rlcompleter
 import select
 import socket
@@ -118,7 +117,7 @@ class Sdb(Pdb):
         ns.update(__builtins__)
         self._completer.namespace = ns
         self._completer.use_main_ns = 0
-        matches = self._completer.complete(text, 0)
+        self._completer.complete(text, 0)
         return self._completer.matches
 
     def get_avail_port(self, host, port, search_limit=100, skew=+0):
@@ -229,7 +228,7 @@ class Sdb(Pdb):
         if line == '?':
             line = 'dir()'
         elif line.endswith('??'):
-            line = "import inspect; print ''.join(inspect.getsourcelines(%s)[0][:25])" % line[:-2]
+            line = "import inspect; print ''.join(inspect.getsourcelines(%s)[0][:25])" % line[:-2]  # noqa
         elif line.endswith('?'):
             line = 'dir(%s)' % line[:-1]
         return cmd.Cmd.parseline(self, line)
@@ -308,7 +307,7 @@ def style(im_self, filepart=None, lexer=None):
     lineno = im_self.curframe.f_lineno
 
     value = re.sub(
-        '(?<!\()%s%s[^\>]+>[^\[]+\[39m([^\x1b]+)[^m]+m([^\n]+)' % (re.escape(intcolor), lineno),
+        '(?<!\()%s%s[^\>]+>[^\[]+\[39m([^\x1b]+)[^m]+m([^\n]+)' % (re.escape(intcolor), lineno),  # noqa
         lambda match: ''.join([
             str(lineno),
             ' ->',
@@ -369,11 +368,6 @@ def listen():
 
 def c():
     raise SystemExit()
-if 'libedit' in readline.__doc__:
-    readline.parse_and_bind("bind ^I rl_complete")
-else:
-    readline.parse_and_bind("tab: complete")
-readline.set_completer(c)
 
 
 def telnet(port):
@@ -408,12 +402,20 @@ def telnet(port):
                             matches = data.split(' ')
                             if len(matches) > 1:
                                 if completing:
-                                    line_buff = line_buff.replace(completing, matches[0])
-                                    matches[0] = '\033[93m' + matches[0] + '\033[0m'
-                                    sys.stdout.write('\n'.join(matches) + '\n' + line_buff)
+                                    line_buff = line_buff.replace(
+                                        completing, matches[0]
+                                    )
+                                    matches[0] = (
+                                        '\033[93m' + matches[0] + '\033[0m'
+                                    )
+                                    sys.stdout.write(
+                                        '\n'.join(matches) + '\n' + line_buff
+                                    )
                             else:
                                 if completing:
-                                    line_buff = line_buff.replace(completing, matches[0])
+                                    line_buff = line_buff.replace(
+                                        completing, matches[0]
+                                    )
                                 sys.stdout.write(line_buff)
                         else:
                             sys.stdout.write('\n' + data)
