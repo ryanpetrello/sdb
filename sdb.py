@@ -234,7 +234,7 @@ class Sdb(Pdb):
         if line == '?':
             line = 'dir()'
         elif line.endswith('??'):
-            line = "import inspect; print ''.join(inspect.getsourcelines(%s)[0][:25])" % line[:-2]  # noqa
+            line = "import inspect; print(''.join(inspect.getsourcelines(%s)[0][:25]))" % line[:-2]  # noqa
         elif line.endswith('?'):
             line = 'dir(%s)' % line[:-1]
         return cmd.Cmd.parseline(self, line)
