@@ -59,6 +59,12 @@ class TestControlCommands(TestSocketTrace):
             [line.strip() for line in inspect.getsourcelines(self.set_trace)[0]]
         )
 
+    def test_bt(self):
+        self.assert_command_yields(
+            'bt',
+            '> ' + __file__
+        )
+
     def test_locals_alias(self):
         self.assert_command_yields(
             '?',
