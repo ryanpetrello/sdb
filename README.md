@@ -46,7 +46,7 @@ to automatically discover open remote debugging sessions and connect to them:
 This will open a Python process that listens for new debugger sessions and
 automatically connects to them for you.  If your breakpoint is run on
 an _entirely different host_, you can optionally specify the hostname where
-`rbd-listen` is running::
+`sbd-listen` is running:
 
 ```python
    import sdb
