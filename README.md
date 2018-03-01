@@ -68,7 +68,9 @@ sdb.sigtrap()
 long_running_process()
 ```
 
-`$ kill -5 <pid-of-process>`
+```shell
+$ kill -5 <pid-of-process>
+```
 
 
 Other Tips
