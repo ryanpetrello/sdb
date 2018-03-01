@@ -56,6 +56,21 @@ an _entirely different host_, you can optionally specify the hostname where
 The `sbd-listen` tool also includes support for tab-completion and history
 tracking.
 
+Triggering sdb with a Signal
+----------------------------
+If you want to debug a running processing, a `set_trace()` call can be
+triggered via `SIGTRAP`:
+
+```python
+import sdb
+sdb.sigtrap()
+
+long_running_process()
+```
+
+`$ kill -5 <pid-of-process>`
+
+
 Other Tips
 ----------
 `sdb` supports the same commands and aliases as Python's [default pdb implementation](https://docs.python.org/2/library/pdb.html#debugger-commands).

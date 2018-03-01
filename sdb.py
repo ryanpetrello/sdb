@@ -9,6 +9,7 @@ import pprint
 import re
 import rlcompleter
 import select
+import signal
 import socket
 import sys
 import termios
@@ -275,6 +276,13 @@ def set_trace(frame=None):
     if frame is None:
         frame = _frame().f_back
     return debugger().set_trace(frame)
+
+
+def sigtrap(*args, **kw):
+    signal.signal(
+        signal.SIGTRAP,
+        lambda signum, frame: Sdb(*args, **kw).set_trace(frame.f_back)
+    )
 
 
 @contextlib.contextmanager
