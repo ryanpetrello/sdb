@@ -419,14 +419,15 @@ class telnet(object):
     def recv(self, data):
         if self.completing is not None:
             self.stdout.write('\x1b[2K\r')
-            matches = data.split(' ')
+            matches = data.decode('utf-8').split(' ')
+            first = matches[0]
             if len(matches) > 1:
                 if self.completing:
                     self.line_buff = self.line_buff.replace(
-                        self.completing, matches[0]
+                        self.completing, first
                     )
                     matches[0] = (
-                        '\033[93m' + matches[0] + '\033[0m'
+                        '\033[93m' + first + '\033[0m'
                     )
                     self.stdout.write(
                         '\n'.join(matches) + '\n' + self.line_buff
@@ -434,7 +435,7 @@ class telnet(object):
             else:
                 if self.completing:
                     self.line_buff = self.line_buff.replace(
-                        self.completing, matches[0]
+                        self.completing, first
                     )
                 self.stdout.write(self.line_buff)
         else:
