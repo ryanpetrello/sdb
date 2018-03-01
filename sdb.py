@@ -362,7 +362,7 @@ def listen():
                     break
                 port = int(port)
                 print('opening telnet session at port :%d...' % port)
-                telnet(port)
+                telnet(port).connect()
                 print('listening for sdb notifications on :6899...')
             except Empty:
                 pass
@@ -377,95 +377,114 @@ def c():
     raise SystemExit()
 
 
-def telnet(port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(2)
-
-    try:
-        s.connect(('0.0.0.0', port))
-    except Exception:
-        print('unable to connect')
-        return
-    print('connected to %s:%d' % ('0.0.0.0', port))
+class telnet(object):
 
     line_buff = ''
     completing = None
-    matches = []
-    history = []
     history_pos = 0
-    while True:
-        socket_list = [sys.stdin, s]
+
+    def __init__(self, port, stdin=sys.stdin, stdout=sys.stdout):
+        self.port = port
+        self.stdin = stdin
+        self.stdout = stdout
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.settimeout(2)
+        self.history = []
+
+    def connect(self):
         try:
-            r, w, e = select.select(socket_list, [], [])
-            for sock in r:
-                if sock == s:
-                    data = sock.recv(4096)
-                    if not data:
-                        print('connection closed')
-                        return
+            self.sock.connect(('0.0.0.0', self.port))
+        except Exception:
+            print('unable to connect')
+            return
+        print('connected to %s:%d' % ('0.0.0.0', self.port))
+
+        while True:
+            socket_list = [self.stdin, self.sock]
+            try:
+                r, w, e = select.select(socket_list, [], [])
+                for sock in r:
+                    if sock == self.sock:
+                        data = self.sock.recv(4096)
+                        if not data:
+                            print('connection closed')
+                            return
+                        self.recv(data)
                     else:
-                        if completing is not None:
-                            sys.stdout.write('\x1b[2K\r')
-                            matches = data.split(' ')
-                            if len(matches) > 1:
-                                if completing:
-                                    line_buff = line_buff.replace(
-                                        completing, matches[0]
-                                    )
-                                    matches[0] = (
-                                        '\033[93m' + matches[0] + '\033[0m'
-                                    )
-                                    sys.stdout.write(
-                                        '\n'.join(matches) + '\n' + line_buff
-                                    )
-                            else:
-                                if completing:
-                                    line_buff = line_buff.replace(
-                                        completing, matches[0]
-                                    )
-                                sys.stdout.write(line_buff)
-                        else:
-                            sys.stdout.write('\n')
-                            sys.stdout.write(data.decode('utf-8'))
-                        sys.stdout.flush()
+                        self.send()
+            except select.error as e:
+                if e[0] != errno.EINTR:
+                    raise
+
+    def recv(self, data):
+        if self.completing is not None:
+            self.stdout.write('\x1b[2K\r')
+            matches = data.split(' ')
+            if len(matches) > 1:
+                if self.completing:
+                    self.line_buff = self.line_buff.replace(
+                        self.completing, matches[0]
+                    )
+                    matches[0] = (
+                        '\033[93m' + matches[0] + '\033[0m'
+                    )
+                    self.stdout.write(
+                        '\n'.join(matches) + '\n' + self.line_buff
+                    )
+            else:
+                if self.completing:
+                    self.line_buff = self.line_buff.replace(
+                        self.completing, matches[0]
+                    )
+                self.stdout.write(self.line_buff)
+        else:
+            self.stdout.write('\n')
+            self.stdout.write(data.decode('utf-8'))
+        self.stdout.flush()
+
+    def send(self):
+        char = self.stdin.read(1)
+        if char == '\x1b':
+            char += self.stdin.read(2)
+            if char in ('\x1b[A', '\x1b[B'):
+                if char == '\x1b[A':
+                    self.history_pos -= 1
+                if char == '\x1b[B':
+                    self.history_pos += 1
+
+                if self.history_pos < 0:
+                    self.history_pos = -1
+                    self.line_buff = ''
                 else:
-                    char = sys.stdin.read(1)
-                    if char == '\x1b':
-                        char += sys.stdin.read(2)
-                        if char in ('\x1b[A', '\x1b[B'):
-                            if char == '\x1b[A':
-                                history_pos -= 1
-                            if char == '\x1b[B':
-                                history_pos += 1
-                            try:
-                                line_buff = history[history_pos]
-                            except IndexError:
-                                line_buff = ''
-                                history_pos = 0
-                            sys.stdout.write('\x1b[2K\r%s' % line_buff)
-                    elif char == '\n':
-                        completing = None
-                        history_pos = 0
-                        history.append(line_buff)
-                        s.send(
-                            line_buff.encode('utf-8') + '\n'.encode('utf-8')
-                        )
-                        line_buff = ''
-                    elif char == '\t':
-                        completing = line_buff.rsplit(' ', 1)[-1]
-                        s.send(
-                            completing.encode('utf-8') + '<!TAB!>\n'.encode('utf-8')  # noqa
-                        )
-                    elif char in ('\x08', '\x7f'):
-                        line_buff = line_buff[:-1]
-                        sys.stdout.write('\x1b[2K\r%s' % line_buff)
-                    else:
-                        line_buff += char
-                        sys.stdout.write(char)
-                    sys.stdout.flush()
-        except select.error as e:
-            if e[0] != errno.EINTR:
-                raise
+                    try:
+                        self.line_buff = self.history[self.history_pos]
+                    except IndexError:
+                        self.history_pos = len(self.history)
+                        self.line_buff = ''
+                self.stdout.write('\x1b[2K\r%s' % self.line_buff)
+        elif char == '\n':
+            self.completing = None
+            self.history_pos += 1
+            self.history.append(self.line_buff)
+            self._send(
+                self.line_buff.encode('utf-8') + '\n'.encode('utf-8')
+            )
+            self.line_buff = ''
+        elif char == '\t':
+            self.completing = self.line_buff.rsplit(' ', 1)[-1]
+            self._send(
+                self.completing.encode('utf-8') + '<!TAB!>\n'.encode('utf-8')  # noqa
+            )
+        elif char in ('\x08', '\x7f'):
+            self.line_buff = self.line_buff[:-1]
+            self.stdout.write('\x1b[2K\r%s' % self.line_buff)
+        else:
+            self.line_buff += char
+            self.stdout.write(char)
+        self.stdout.flush()
+
+    def _send(self, line):
+        self.sock.send(line)
 
 
 if __name__ == '__main__':
