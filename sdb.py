@@ -373,10 +373,6 @@ def listen():
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, orig_tty)
 
 
-def c():
-    raise SystemExit()
-
-
 class telnet(object):
 
     line_buff = ''
@@ -485,8 +481,8 @@ class telnet(object):
         self.stdout.flush()
 
     def _send(self, line):
-        self.sock.send(line)
+        self.sock.send(line)  # pragma: nocover
 
 
 if __name__ == '__main__':
-    listen()
+    listen()  # pragma: nocover

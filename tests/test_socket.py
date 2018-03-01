@@ -11,6 +11,7 @@ import sdb
 
 HOST = '127.0.0.1'
 
+
 class TestSocketTrace(unittest.TestCase):
 
     def setUp(self):
@@ -54,7 +55,7 @@ class TestControlCommands(TestSocketTrace):
     def test_list(self):
         self.assert_command_yields(
             'list',
-            [line.strip() for line in inspect.getsourcelines(self.set_trace)[0]]
+            [l.strip() for l in inspect.getsourcelines(self.set_trace)[0]]
         )
 
     def test_bt(self):
