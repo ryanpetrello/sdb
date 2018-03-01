@@ -87,6 +87,7 @@ Other Tips
 
 `sdb` includes a few additional debugger aliases that make interactive debugging more pleasant:
 
+- Prefix commands with an integer to repeat them.  For example, `10n` is the same as running `next` 10 times in a row.
 - `?` is the same as calling `dir()`
 - `??` can be added to the end of a function call to view its source lines e.g., `requests.post??` might print:
 

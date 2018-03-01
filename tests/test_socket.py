@@ -88,6 +88,12 @@ class TestControlCommands(TestSocketTrace):
             'sdb.set_trace()'
         )
 
+    def test_command_repeat(self):
+        self.assert_command_yields(
+            '3p "Hello, World!"',
+            'Hello, World!\nHello, World!\nHello, World!\n'
+        )
+
     def test_setlines(self):
         stdout = six.BytesIO() if six.PY3 else six.StringIO()
         child = pexpect.spawn('telnet', [HOST, self.port])

@@ -221,11 +221,13 @@ class Sdb(Pdb):
 
     def parseline(self, line):
         line = line.strip()
-        match = re.search('^([0-9]+)([a-zA-Z]+)', line)
+        match = re.search('^([0-9]+)([a-zA-Z]+.*)', line)
         if match:
             times, command = match.group(1), match.group(2)
             line = command
-            self.cmdqueue.extend(list(command * (int(times) - 1)))
+            self.cmdqueue.extend([
+                command for _ in range(int(times) - 1)
+            ])
         if line.startswith('lines '):
             try:
                 self.context_lines = int(line.split(' ')[1])
