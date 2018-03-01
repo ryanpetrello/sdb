@@ -58,8 +58,8 @@ tracking.
 
 Triggering sdb with a Signal
 ----------------------------
-If you want to debug a running processing, a `set_trace()` call can be
-triggered via `SIGTRAP`:
+If you want to debug a running process without setting a specific breakpoint,
+a `set_trace()` call can be triggered via `SIGTRAP`:
 
 ```python
 import sdb
@@ -71,6 +71,9 @@ long_running_process()
 ```shell
 $ kill -5 <pid-of-process>
 ```
+
+This is particularly useful for investigating Python processes that appear to
+be hung.
 
 
 Other Tips
