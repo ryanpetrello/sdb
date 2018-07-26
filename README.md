@@ -50,7 +50,7 @@ an _entirely different host_, you can optionally specify the hostname where
 
 ```python
    import sdb
-   sdb.Sdb(notify_host='docker.for.mac.internal').set_trace()
+   sdb.Sdb(notify_host='docker.for.mac.host.internal').set_trace()
 ```
 
 The `sbd-listen` tool also includes support for tab-completion and history
