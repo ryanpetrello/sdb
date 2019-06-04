@@ -94,6 +94,18 @@ class TestControlCommands(TestSocketTrace):
             'Hello, World!\nHello, World!\nHello, World!\n'
         )
 
+    def test_print_undefined(self):
+        self.assert_command_yields(
+            'undefined',
+            "NameError: name 'undefined' is not defined"
+        )
+
+    def test_print_empty_string(self):
+        self.assert_command_yields('""', '""\n')
+
+    def test_print_nonetype(self):
+        self.assert_command_yields('None', 'None\n')
+
     def test_setlines(self):
         stdout = six.BytesIO() if six.PY3 else six.StringIO()
         child = pexpect.spawn('telnet', [HOST, self.port])
@@ -111,6 +123,8 @@ class TestControlCommands(TestSocketTrace):
         child.expect([pexpect.EOF])
         assert not child.isalive()
 
-        # there should only be 10 lines of list output and a line for the final
-        # `continue` command
-        assert len(stdout.getvalue().splitlines()) == 11
+        # strip off everything before the "c" continue command
+        lines = stdout.getvalue().splitlines()
+        assert len(lines[:lines.index(
+            'c' if six.PY2 else b'c'
+        )]) == 10

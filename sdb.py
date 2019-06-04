@@ -193,7 +193,7 @@ class Sdb(Pdb):
         context = (lines - 2) / 2
         if not args:
             first = max(1, self.curframe.f_lineno - context)
-            last = first + context * 2 - 1
+            last = first + context * 2
             args = six.text_type('%s, %s') % (
                 six.text_type(int(first)),
                 six.text_type(int(last)),
@@ -292,7 +292,13 @@ def style(im_self, filepart=None, lexer=None):
 
     lexer = PythonLexer
     old_stdout = im_self.stdout
-    buff = six.StringIO()
+
+    class NoneBuffer(six.StringIO):
+        def write(self, x):
+            if x == '':
+                x = "''"
+            six.StringIO.write(self, x)
+    buff = NoneBuffer()
     im_self.stdout = buff
     yield
 
@@ -306,6 +312,9 @@ def style(im_self, filepart=None, lexer=None):
             with open(filepath, 'r') as source:
                 file_cache[filepath] = source.readlines()
         value = ''.join(file_cache[filepath][:int(lineno) - 1]) + value
+
+    if not value.strip():
+        value = 'None\n'
 
     if im_self.colorize is True:
         formatter = Terminal256Formatter(style='friendly')
