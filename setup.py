@@ -28,6 +28,7 @@ setup(
     py_modules=['sdb'],
     entry_points={
         'console_scripts': [
+            'sdb = sdb:main',
             'sdb-listen = sdb:listen'
         ]
     }

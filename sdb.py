@@ -550,6 +550,11 @@ def main():
     for opt, optarg in opts:
         if opt in ['-m']:
             run_as_module = True
+
+    if not args:
+        print('Error: Please specify a script or module')
+        sys.exit(1)
+
     script = args[0]
     if not run_as_module and not os.path.exists(script):
         print('Error:', script, 'does not exist')
