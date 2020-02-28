@@ -14,6 +14,7 @@ import socket
 import sys
 import termios
 import threading
+import traceback
 import tty
 from multiprocessing import process
 from pdb import Pdb
@@ -86,7 +87,7 @@ class Sdb(Pdb):
     def __init__(self, host=SDB_HOST, port=SDB_PORT,
                  notify_host=SDB_NOTIFY_HOST, context_lines=SDB_CONTEXT_LINES,
                  port_search_limit=100, port_skew=+0, out=sys.stdout,
-                 colorize=SDB_COLORIZE):
+                 colorize=SDB_COLORIZE, interactive=False):
         self.active = True
         self.out = out
         self.colorize = colorize
@@ -103,14 +104,19 @@ class Sdb(Pdb):
         self.host = host
         self.port = this_port
         self.ident = '{0}:{1}'.format(self.me, this_port)
-        self.say(BANNER.format(self=self))
 
-        self._client, address = self._sock.accept()
-        self._client.setblocking(1)
-        self.remote_addr = ':'.join(str(v) for v in address)
-        self.say(SESSION_STARTED.format(self=self))
-        self._handle = sys.stdin = sys.stdout = self._client.makefile('rw')
-        Pdb.__init__(self, stdin=self._handle, stdout=self._handle)
+        self.interactive = interactive
+        if self.interactive is False:
+            self.say(BANNER.format(self=self))
+            self._client, address = self._sock.accept()
+            self._client.setblocking(1)
+            self.remote_addr = ':'.join(str(v) for v in address)
+            self.say(SESSION_STARTED.format(self=self))
+
+            self._handle = sys.stdin = sys.stdout = self._client.makefile('rw')
+            Pdb.__init__(self, stdin=self._handle, stdout=self._handle)
+        else:
+            Pdb.__init__(self, stdin=sys.stdin, stdout=sys.stdout)
         self.prompt = ''
 
     def complete(self, text):
@@ -158,7 +164,7 @@ class Sdb(Pdb):
 
     def _close_session(self):
         self.stdin, self.stdout = sys.stdin, sys.stdout = self._prev_handles
-        if self.active:
+        if not self.interactive and self.active:
             if self._handle is not None:
                 self._handle.close()
             if self._client is not None:
@@ -264,6 +270,36 @@ class Sdb(Pdb):
     def say(self, m):
         logging.warning(m)
 
+    def _runmodule(self, module_name):
+        self._wait_for_mainpyfile = True
+        self._user_requested_quit = False
+        import runpy
+        mod_name, mod_spec, code = runpy._get_module_details(module_name)
+        self.mainpyfile = self.canonic(code.co_filename)
+        import __main__
+        __main__.__dict__.update({
+            "__name__": "__main__",
+            "__file__": self.mainpyfile,
+            "__package__": mod_spec.parent,
+            "__loader__": mod_spec.loader,
+            "__spec__": mod_spec,
+            "__builtins__": __builtins__,
+        })
+        self.run(code)
+
+    def _runscript(self, filename):
+        self._wait_for_mainpyfile = True
+        self.mainpyfile = self.canonic(filename)
+        self._user_requested_quit = False
+        with open(filename, "rb") as fp:
+            statement = "exec(compile(%r, %r, 'exec'))" % \
+                        (fp.read(), self.mainpyfile)
+
+        import pdb
+        l = locals()
+        l['pdb'] = pdb
+        self.run(statement, locals=l)
+
 
 def debugger():
     """Return the current debugger instance, or create if none."""
@@ -307,11 +343,14 @@ def style(im_self, filepart=None, lexer=None):
     file_cache = {}
 
     if filepart:
-        filepath, lineno = filepart
-        if filepath not in file_cache:
-            with open(filepath, 'r') as source:
-                file_cache[filepath] = source.readlines()
-        value = ''.join(file_cache[filepath][:int(lineno) - 1]) + value
+        try:
+            filepath, lineno = filepart
+            if filepath not in file_cache:
+                with open(filepath, 'r') as source:
+                    file_cache[filepath] = source.readlines()
+            value = ''.join(file_cache[filepath][:int(lineno) - 1]) + value
+        except:
+            pass
 
     if not value.strip():
         value = 'None\n'
@@ -503,5 +542,38 @@ class telnet(object):
         self.sock.send(line)  # pragma: nocover
 
 
+def main():
+    import getopt
+    opts, args = getopt.getopt(sys.argv[1:], 'm', [])
+
+    run_as_module = False
+    for opt, optarg in opts:
+        if opt in ['-m']:
+            run_as_module = True
+
+    if not args:
+        print('Error: Please specify a script or module')
+        sys.exit(1)
+
+    script = args[0]
+    if not run_as_module and not os.path.exists(script):
+        print('Error:', script, 'does not exist')
+        sys.exit(1)
+
+    sys.argv[:] = args
+
+    debugger = Sdb(interactive=True)
+    try:
+        if run_as_module:
+            debugger._runmodule(script)
+        else:
+            debugger._runscript(script)
+    except SyntaxError:
+        traceback.print_exc()
+        sys.exit(1)
+    except KeyboardInterrupt:
+        sys.exit(1)
+
+
 if __name__ == '__main__':
-    listen()  # pragma: nocover
+    main()  # pragma: nocover
