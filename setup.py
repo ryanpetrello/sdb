@@ -14,6 +14,7 @@ setup(
     url='https://github.com/ryanpetrello/sdb',
     description='A socket-based remote debugger for Python',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
