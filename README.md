@@ -45,16 +45,45 @@ to automatically discover open remote debugging sessions and connect to them:
 
 This will open a Python process that listens for new debugger sessions and
 automatically connects to them for you.  If your breakpoint is run on
-an _entirely different host_, you can optionally specify the hostname where
-`sbd-listen` is running:
+an _entirely different host_ (e.g. `10.0.0.1`) you can optionally specify the
+hostname where `sdb-listen` is running:
+
+```python
+   import sdb
+   sdb.Sdb(notify_host='10.0.0.1').set_trace()
+```
+
+For OSX users, the Docker for Mac application relies on a separate virtual
+machine running the containers. A unique hostname is advertised to containers
+pointing back to the virtual machine called: `docker.for.mac.host.internal`.
+
+The breakpoint can then be configured to use that host so that it works
+seamlessly in a Mac:
 
 ```python
    import sdb
    sdb.Sdb(notify_host='docker.for.mac.host.internal').set_trace()
 ```
 
-The `sbd-listen` tool also includes support for tab-completion and history
+The `sdb-listen` tool also includes support for tab-completion and history
 tracking.
+
+Configuration with Environment Variables
+----------------------------------------
+
+It is possible to set environment variables to configure `sdb`, which allows
+to avoid remembering hosts and ports at the time of setting the breakpoints.
+
+`SDB_HOST` : Defaults to `127.0.0.1` and it is the address that `sdb` should
+bind to.
+`SDB_PORT` : Defaults to `6899`, and it is the port used to bind (used with
+`SDB_HOST`). Note that `sdb` has a range of ports from `6899` to `6999`.
+`SDB_NOTIFY_HOST` : To advertise a different host, useful for a separate remote
+host like in the case of Docker for Mac.
+`SDB_CONTEXT_LINES` : How much context should get printed when a breakpoint is
+reached. Defaults to 60.
+`SDB_COLORIZE` : Toggle to enable or disable colorized output. Defaults to
+enabled.
 
 Triggering sdb with a Signal
 ----------------------------
@@ -75,6 +104,28 @@ $ kill -5 <pid-of-process>
 This is particularly useful for investigating Python processes that appear to
 be hung.
 
+Docker Compose Examples
+-----------------------
+
+If using Docker Compose, it is useful to open the range of ports that `sdb`
+supports, as well as injecting the environment variables to configure the
+connection.
+
+For example:
+
+```yaml
+    environment:
+    - SDB_NOTIFY_HOST=docker.for.mac.host.internal
+    - SDB_HOST=0.0.0.0
+    - SDB_PORT=6899
+```
+
+It is useful to define a range of ports that `sdb` can use:
+
+```yaml
+    ports:
+    - "6899-6999:6899-6999"
+```
 
 Other Tips
 ----------
