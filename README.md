@@ -74,15 +74,15 @@ Configuration with Environment Variables
 It is possible to set environment variables to configure `sdb`, which allows
 to avoid remembering hosts and ports at the time of setting the breakpoints.
 
-`SDB_HOST` : Defaults to `127.0.0.1` and it is the address that `sdb` should
+- `SDB_HOST` : Defaults to `127.0.0.1` and it is the address that `sdb` should
 bind to.
-`SDB_PORT` : Defaults to `6899`, and it is the port used to bind (used with
+- `SDB_PORT` : Defaults to `6899`, and it is the port used to bind (used with
 `SDB_HOST`). Note that `sdb` has a range of ports from `6899` to `6999`.
-`SDB_NOTIFY_HOST` : To advertise a different host, useful for a separate remote
+- `SDB_NOTIFY_HOST` : To advertise a different host, useful for a separate remote
 host like in the case of Docker for Mac.
-`SDB_CONTEXT_LINES` : How much context should get printed when a breakpoint is
+- `SDB_CONTEXT_LINES` : How much context should get printed when a breakpoint is
 reached. Defaults to 60.
-`SDB_COLORIZE` : Toggle to enable or disable colorized output. Defaults to
+- `SDB_COLORIZE` : Toggle to enable or disable colorized output. Defaults to
 enabled.
 
 Triggering sdb with a Signal
