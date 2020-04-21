@@ -459,7 +459,7 @@ class telnet(object):
                 r, w, e = select.select(socket_list, [], [])
                 for sock in r:
                     if sock == self.sock:
-                        data = self.sock.recv(4096)
+                        data = self.sock.recv(4096 * 4)
                         if not data:
                             print('connection closed')
                             return
@@ -472,7 +472,7 @@ class telnet(object):
 
     def recv(self, data):
         if self.completing is not None:
-            self.stdout.write('\x1b[2K\r')
+            self.stdout.write('\x1b[2K\r>>> ')
             matches = data.decode('utf-8').split(' ')
             first = matches[0]
             if len(matches) > 1:
@@ -495,6 +495,7 @@ class telnet(object):
         else:
             self.stdout.write('\n')
             self.stdout.write(data.decode('utf-8'))
+            self.stdout.write('>>> ')
         self.stdout.flush()
 
     def send(self):
@@ -516,7 +517,7 @@ class telnet(object):
                     except IndexError:
                         self.history_pos = len(self.history)
                         self.line_buff = ''
-                self.stdout.write('\x1b[2K\r%s' % self.line_buff)
+                self.stdout.write('\x1b[2K\r>>> %s' % self.line_buff)
         elif char == '\n':
             self.completing = None
             self.history_pos += 1
@@ -532,7 +533,7 @@ class telnet(object):
             )
         elif char in ('\x08', '\x7f'):
             self.line_buff = self.line_buff[:-1]
-            self.stdout.write('\x1b[2K\r%s' % self.line_buff)
+            self.stdout.write('\x1b[2K\r>>> %s' % self.line_buff)
         else:
             self.line_buff += char
             self.stdout.write(char)
