@@ -459,7 +459,7 @@ class telnet(object):
                 r, w, e = select.select(socket_list, [], [])
                 for sock in r:
                     if sock == self.sock:
-                        data = self.sock.recv(4096)
+                        data = self.sock.recv(4096 * 4)
                         if not data:
                             print('connection closed')
                             return
@@ -472,7 +472,7 @@ class telnet(object):
 
     def recv(self, data):
         if self.completing is not None:
-            self.stdout.write('\x1b[2K\r')
+            self.stdout.write('\x1b[2K\r>>> ')
             matches = data.decode('utf-8').split(' ')
             first = matches[0]
             if len(matches) > 1:
@@ -495,6 +495,7 @@ class telnet(object):
         else:
             self.stdout.write('\n')
             self.stdout.write(data.decode('utf-8'))
+            self.stdout.write('>>> ')
         self.stdout.flush()
 
     def send(self):
@@ -503,8 +504,10 @@ class telnet(object):
             char += self.stdin.read(2)
             if char in ('\x1b[A', '\x1b[B'):
                 if char == '\x1b[A':
+                    # history up
                     self.history_pos -= 1
                 if char == '\x1b[B':
+                    # history down
                     self.history_pos += 1
 
                 if self.history_pos < 0:
@@ -516,8 +519,9 @@ class telnet(object):
                     except IndexError:
                         self.history_pos = len(self.history)
                         self.line_buff = ''
-                self.stdout.write('\x1b[2K\r%s' % self.line_buff)
+                self.stdout.write('\x1b[2K\r>>> %s' % self.line_buff)
         elif char == '\n':
+            # return char
             self.completing = None
             self.history_pos += 1
             self.history.append(self.line_buff)
@@ -526,13 +530,18 @@ class telnet(object):
             )
             self.line_buff = ''
         elif char == '\t':
+            # tab complete
             self.completing = self.line_buff.rsplit(' ', 1)[-1]
             self._send(
                 self.completing.encode('utf-8') + '<!TAB!>\n'.encode('utf-8')  # noqa
             )
         elif char in ('\x08', '\x7f'):
+            # backspace, delete
             self.line_buff = self.line_buff[:-1]
-            self.stdout.write('\x1b[2K\r%s' % self.line_buff)
+            self.stdout.write('\x1b[2K\r>>> %s' % self.line_buff)
+        elif char == '\x15':
+            # line clear
+            self.stdout.write('\x1b[2K\r>>> ')
         else:
             self.line_buff += char
             self.stdout.write(char)
