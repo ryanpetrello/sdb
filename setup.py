@@ -6,7 +6,7 @@ import unittest
 
 setup(
     name='sdb',
-    version='1.7',
+    version='1.8',
     author='Ryan Petrello',
     author_email='ryan@ryanpetrello.com',
     url='https://github.com/ryanpetrello/sdb',
