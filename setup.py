@@ -3,6 +3,8 @@
 from setuptools import setup
 import unittest
 
+with open('README.md') as _f:
+    long_description = _f.read()
 
 setup(
     name='sdb',
@@ -11,6 +13,7 @@ setup(
     author_email='ryan@ryanpetrello.com',
     url='https://github.com/ryanpetrello/sdb',
     description='A socket-based remote debugger for Python',
+    long_description=long_description,
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
